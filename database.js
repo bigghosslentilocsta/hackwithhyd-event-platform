@@ -10,15 +10,15 @@ const db = new sqlite3.Database('./hackathon.db', (err) => {
 });
 
 db.serialize(() => {
+    // Users table (no changes)
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE,
         password TEXT,
         skills TEXT
-    )`, (err) => {
-        if (err) { console.error("Error creating users table", err.message); }
-    });
+    )`);
 
+    // Events table (no changes)
     db.run(`CREATE TABLE IF NOT EXISTS events (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
@@ -26,9 +26,17 @@ db.serialize(() => {
         date TEXT,
         organizerId INTEGER,
         FOREIGN KEY(organizerId) REFERENCES users(id)
-    )`, (err) => {
-        if (err) { console.error("Error creating events table", err.message); }
-    });
+    )`);
+
+    // --- NEW --- Event Participants table
+    // This table links users to the events they've joined.
+    db.run(`CREATE TABLE IF NOT EXISTS event_participants (
+        eventId INTEGER,
+        userId INTEGER,
+        PRIMARY KEY (eventId, userId),
+        FOREIGN KEY (eventId) REFERENCES events(id),
+        FOREIGN KEY (userId) REFERENCES users(id)
+    )`);
 });
 
 module.exports = db;

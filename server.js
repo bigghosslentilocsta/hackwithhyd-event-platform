@@ -7,8 +7,7 @@ const app = express();
 const PORT = 3000;
 const saltRounds = 10;
 
-// --- NEW --- CSP Middleware to fix button issue
-// This tells the browser to allow scripts from our site, from the Bootstrap CDN, and to allow the function that was being blocked ('unsafe-eval').
+// --- CSP Middleware (The Security Fix) ---
 app.use((req, res, next) => {
     res.setHeader(
         'Content-Security-Policy',
@@ -17,10 +16,11 @@ app.use((req, res, next) => {
     next();
 });
 
+// Standard Middleware
 app.use(express.json());
 app.use(express.static('public'));
 
-// --- API ENDPOINTS (No changes below this line) ---
+// --- API ENDPOINTS ---
 
 // POST /register
 app.post('/register', (req, res) => {
@@ -82,6 +82,40 @@ app.get('/events', (req, res) => {
     });
 });
 
+// POST /events/:id/join
+app.post('/events/:id/join', (req, res) => {
+    const eventId = req.params.id;
+    const { userId } = req.body;
+    if (!userId) { return res.status(400).json({ error: "User ID is required." }); }
+    const sql = 'INSERT INTO event_participants (eventId, userId) VALUES (?, ?)';
+    db.run(sql, [eventId, userId], function(err) {
+        if (err) {
+            if (err.message.includes('UNIQUE constraint failed')) {
+                return res.json({ message: "User has already joined this event." });
+            }
+            return res.status(500).json({ error: err.message });
+        }
+        res.status(201).json({ message: "Successfully joined event." });
+    });
+});
+
+// GET /events/:id/participants
+app.get('/events/:id/participants', (req, res) => {
+    const eventId = req.params.id;
+    const sql = `
+        SELECT u.id, u.username, u.skills 
+        FROM users u
+        JOIN event_participants ep ON u.id = ep.userId
+        WHERE ep.eventId = ?
+    `;
+    db.all(sql, [eventId], (err, rows) => {
+        if (err) { return res.status(500).json({ error: err.message }); }
+        res.json({ data: rows });
+    });
+});
+
+
+// Start the server
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });

@@ -2,7 +2,7 @@
 
 // --- Global State ---
 let currentUser = null;
-let createEventModal;
+let createEventModal, participantsModal;
 
 // --- DOM Elements ---
 const views = {
@@ -23,26 +23,25 @@ const logoutButton = document.getElementById('logout-button');
 const welcomeMessage = document.getElementById('welcome-message');
 const eventsList = document.getElementById('events-list');
 const teamFinderList = document.getElementById('team-finder-list');
+const participantsList = document.getElementById('participants-list');
+const participantsModalTitle = document.getElementById('participants-modal-title');
 
 // --- Functions ---
-
-// Function to switch between views
 function showView(viewName) {
     for (const key in views) {
-        if(views[key]) views[key].style.display = 'none';
+        if (views[key]) views[key].style.display = 'none';
     }
     if (views[viewName]) {
         views[viewName].style.display = 'block';
     }
-    if(mainNav) mainNav.style.display = (viewName === 'login' || viewName === 'register') ? 'none' : 'flex';
+    if (mainNav) mainNav.style.display = (viewName === 'login' || viewName === 'register') ? 'none' : 'flex';
 }
 
-// Fetch and display all events
 async function fetchAndDisplayEvents() {
     try {
         const response = await fetch('/events');
         const { data } = await response.json();
-        eventsList.innerHTML = ''; // Clear existing list
+        eventsList.innerHTML = '';
         if (data.length === 0) {
             eventsList.innerHTML = '<p class="text-center">No events found. Be the first to create one!</p>';
             return;
@@ -51,23 +50,24 @@ async function fetchAndDisplayEvents() {
             const eventCard = `
                 <div class="col-md-4 mb-3">
                     <div class="card h-100">
-                        <div class="card-body">
+                        <div class="card-body d-flex flex-column">
                             <h5 class="card-title">${event.name}</h5>
                             <h6 class="card-subtitle mb-2 text-muted">Date: ${new Date(event.date).toLocaleDateString()}</h6>
                             <p class="card-text">${event.description}</p>
-                            <footer class="blockquote-footer mt-auto">Organized by ${event.organizerName}</footer>
+                            <footer class="blockquote-footer">Organized by ${event.organizerName}</footer>
+                            <div class="mt-auto pt-3">
+                                <button class="btn btn-success btn-sm join-event-btn" data-event-id="${event.id}">Join Event</button>
+                                <a href="#" class="card-link view-participants-link ms-2" data-event-id="${event.id}" data-event-name="${event.name}">See Who's Going</a>
+                            </div>
                         </div>
                     </div>
                 </div>
             `;
             eventsList.innerHTML += eventCard;
         });
-    } catch (error) {
-        console.error('Error fetching events:', error);
-    }
+    } catch (error) { console.error('Error fetching events:', error); }
 }
 
-// AI Team Finder Logic
 async function findTeams() {
     try {
         const response = await fetch('/users');
@@ -82,21 +82,14 @@ async function findTeams() {
 
         teamFinderList.innerHTML = '';
         if (matchedUsers.length === 0) {
-            teamFinderList.innerHTML = '<div class="list-group-item">No matching users found. Try adding more skills to your profile!</div>';
+            teamFinderList.innerHTML = '<div class="list-group-item">No matching users found.</div>';
             return;
         }
         matchedUsers.forEach(user => {
-            const userElement = `
-                <div class="list-group-item">
-                    <h5 class="mb-1">${user.username}</h5>
-                    <p class="mb-1"><strong>Skills:</strong> ${user.skills}</p>
-                </div>
-            `;
+            const userElement = `<div class="list-group-item"><h5 class="mb-1">${user.username}</h5><p class="mb-1"><strong>Skills:</strong> ${user.skills}</p></div>`;
             teamFinderList.innerHTML += userElement;
         });
-    } catch (error) {
-        console.error('Error fetching users for team finder:', error);
-    }
+    } catch (error) { console.error('Error fetching users for team finder:', error); }
 }
 
 function updateUIForLogin(user) {
@@ -107,7 +100,6 @@ function updateUIForLogin(user) {
 }
 
 // --- Event Listeners ---
-
 if (loginForm) {
     loginForm.addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -161,10 +153,49 @@ if(createEventForm) {
     });
 }
 
-if(showRegisterLink) showRegisterLink.addEventListener('click', () => showView('register'));
-if(showLoginLink) showLoginLink.addEventListener('click', () => showView('login'));
-if(showDashboardLink) showDashboardLink.addEventListener('click', () => showView('dashboard'));
-if(showTeamFinderLink) showTeamFinderLink.addEventListener('click', () => {
+eventsList.addEventListener('click', async (event) => {
+    if (event.target.classList.contains('join-event-btn')) {
+        const eventId = event.target.dataset.eventId;
+        try {
+            const response = await fetch(`/events/${eventId}/join`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: currentUser.id })
+            });
+            const data = await response.json();
+            alert(data.message);
+        } catch (error) { alert('Failed to join event.'); }
+    }
+
+    if (event.target.classList.contains('view-participants-link')) {
+        event.preventDefault();
+        const eventId = event.target.dataset.eventId;
+        const eventName = event.target.dataset.eventName;
+        participantsModalTitle.textContent = `Participants for ${eventName}`;
+        try {
+            const response = await fetch(`/events/${eventId}/participants`);
+            const { data } = await response.json();
+            participantsList.innerHTML = '';
+            if (data.length === 0) {
+                participantsList.innerHTML = '<li class="list-group-item">No one has joined yet.</li>';
+            } else {
+                data.forEach(participant => {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item';
+                    li.textContent = participant.username;
+                    participantsList.appendChild(li);
+                });
+            }
+            participantsModal.show();
+        } catch (error) { alert('Could not fetch participants.'); }
+    }
+});
+
+if(showRegisterLink) showRegisterLink.addEventListener('click', (e) => { e.preventDefault(); showView('register'); });
+if(showLoginLink) showLoginLink.addEventListener('click', (e) => { e.preventDefault(); showView('login'); });
+if(showDashboardLink) showDashboardLink.addEventListener('click', (e) => { e.preventDefault(); showView('dashboard'); });
+if(showTeamFinderLink) showTeamFinderLink.addEventListener('click', (e) => {
+    e.preventDefault();
     showView('teamFinder');
     findTeams();
 });
@@ -179,6 +210,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalElement = document.getElementById('create-event-modal');
     if (modalElement) {
         createEventModal = new bootstrap.Modal(modalElement);
+    }
+    const participantsModalElement = document.getElementById('participants-modal');
+    if (participantsModalElement) {
+        participantsModal = new bootstrap.Modal(participantsModalElement);
     }
     showView('login');
 });
