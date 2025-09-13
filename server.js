@@ -11,24 +11,15 @@ const io = new Server(server);
 const PORT = 3000;
 const saltRounds = 10;
 
-// --- CRITICAL FIX: The Content Security Policy Middleware ---
 app.use((req, res, next) => {
-    res.setHeader(
-        'Content-Security-Policy',
-        "script-src 'self' https://cdn.jsdelivr.net https://cdn.socket.io 'unsafe-eval'"
-    );
+    res.setHeader('Content-Security-Policy', "script-src 'self' https://cdn.jsdelivr.net https://cdn.socket.io 'unsafe-eval'");
     next();
 });
-
-// Standard Middleware
 app.use(express.json());
 app.use(express.static('public'));
 
-// Real-time Chat Logic
 io.on('connection', (socket) => {
-    socket.on('joinRoom', ({ eventId }) => {
-        socket.join(eventId);
-    });
+    socket.on('joinRoom', ({ eventId }) => { socket.join(eventId); });
     socket.on('chatMessage', (data) => {
         const { eventId, userId, username, message } = data;
         const sql = `INSERT INTO chat_messages (eventId, userId, username, message) VALUES (?, ?, ?, ?)`;
@@ -39,7 +30,6 @@ io.on('connection', (socket) => {
     });
 });
 
-// API Endpoint: Register
 app.post('/register', (req, res) => {
     const { username, password, skills } = req.body;
     if (!username || !password || !skills) { return res.status(400).json({ error: "All fields are required." }); }
@@ -53,7 +43,6 @@ app.post('/register', (req, res) => {
     });
 });
 
-// API Endpoint: Login
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) { return res.status(400).json({ error: "Username and password are required." }); }
@@ -70,7 +59,6 @@ app.post('/login', (req, res) => {
     });
 });
 
-// API Endpoint: Get All Users
 app.get('/users', (req, res) => {
     const sql = "SELECT id, username, skills FROM users";
     db.all(sql, [], (err, rows) => {
@@ -79,7 +67,6 @@ app.get('/users', (req, res) => {
     });
 });
 
-// API Endpoint: Create Event
 app.post('/events', (req, res) => {
     const { name, description, date, organizerId } = req.body;
     if (!name || !description || !date || !organizerId) { return res.status(400).json({ error: "All fields are required." }); }
@@ -90,10 +77,9 @@ app.post('/events', (req, res) => {
     });
 });
 
-// API Endpoint: Get All Events (with Search)
 app.get('/events', (req, res) => {
     const searchTerm = req.query.search || '';
-    const sql = `SELECT events.id, events.name, events.description, events.date, users.username as organizerName FROM events JOIN users ON events.organizerId = users.id WHERE events.name LIKE ? ORDER BY events.date DESC`;
+    const sql = `SELECT e.id, e.name, e.description, e.date, u.username as organizerName, COUNT(ep.userId) as participantCount FROM events e JOIN users u ON e.organizerId = u.id LEFT JOIN event_participants ep ON e.id = ep.eventId WHERE e.name LIKE ? GROUP BY e.id ORDER BY e.date DESC`;
     const params = [`%${searchTerm}%`];
     db.all(sql, params, (err, rows) => {
         if (err) { return res.status(400).json({ "error": err.message }); }
@@ -101,7 +87,6 @@ app.get('/events', (req, res) => {
     });
 });
 
-// API Endpoint: Get Single Event
 app.get('/events/:id', (req, res) => {
     const eventId = req.params.id;
     const sql = "SELECT events.id, events.name, events.description, events.date, users.username as organizerName FROM events JOIN users ON events.organizerId = users.id WHERE events.id = ?";
@@ -112,7 +97,6 @@ app.get('/events/:id', (req, res) => {
     });
 });
 
-// API Endpoint: Join Event
 app.post('/events/:id/join', (req, res) => {
     const eventId = req.params.id;
     const { userId } = req.body;
@@ -127,7 +111,27 @@ app.post('/events/:id/join', (req, res) => {
     });
 });
 
-// API Endpoint: Get Event Participants
+app.delete('/events/:id/join', (req, res) => {
+    const eventId = req.params.id;
+    const { userId } = req.body;
+    if (!userId) { return res.status(400).json({ error: "User ID is required." }); }
+    const sql = 'DELETE FROM event_participants WHERE eventId = ? AND userId = ?';
+    db.run(sql, [eventId, userId], function(err) {
+        if (err) { return res.status(500).json({ error: err.message }); }
+        res.json({ message: "Successfully left event!" });
+    });
+});
+
+app.get('/users/:id/joined-events', (req, res) => {
+    const userId = req.params.id;
+    const sql = `SELECT eventId FROM event_participants WHERE userId = ?`;
+    db.all(sql, [userId], (err, rows) => {
+        if (err) { return res.status(500).json({ error: err.message }); }
+        const eventIds = rows.map(row => row.eventId);
+        res.json({ data: eventIds });
+    });
+});
+
 app.get('/events/:id/participants', (req, res) => {
     const eventId = req.params.id;
     const sql = `SELECT u.id, u.username, u.skills FROM users u JOIN event_participants ep ON u.id = ep.userId WHERE ep.eventId = ?`;
@@ -137,7 +141,6 @@ app.get('/events/:id/participants', (req, res) => {
     });
 });
 
-// API Endpoint: Get Chat History
 app.get('/events/:id/messages', (req, res) => {
     const eventId = req.params.id;
     const sql = `SELECT username, message as text FROM chat_messages WHERE eventId = ? ORDER BY timestamp ASC`;
@@ -147,7 +150,4 @@ app.get('/events/:id/messages', (req, res) => {
     });
 });
 
-// Start Server
-server.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-});
+server.listen(PORT, () => { console.log(`Server is running on http://localhost:${PORT}`); });
