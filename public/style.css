@@ -1,0 +1,131 @@
+/* style.css */
+
+/* "Sakura Day" Color Palette */
+:root {
+    --primary-color: #E83E8C; --primary-color-darker: #C2185B; --accent-color: #DC3545;
+    --accent-color-darker: #C82333; --bg-color-start: #fdfbfb; --bg-color-end: #fce4ec;
+    --card-bg-color: #FFFFFF; --text-color-dark: #212529; --heading-grad-start: #8E24AA;
+    --heading-grad-end: #D81B60; --font-family: 'Poppins', sans-serif;
+}
+
+body {
+    font-family: var(--font-family);
+    background-color: var(--bg-color-start);
+    background-image: linear-gradient(135deg, var(--bg-color-start), var(--bg-color-end));
+    background-attachment: fixed;
+    color: var(--text-color-dark);
+    position: relative;
+}
+
+body::after {
+    content: ''; position: fixed; top: 0; right: 0; width: 40%; height: 80%;
+    background-image: url('/branch.png'); background-repeat: no-repeat;
+    background-position: top right; background-size: contain; z-index: -2; opacity: 0.8;
+}
+
+.card {
+    background-color: var(--card-bg-color); border: none;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08); transition: all 0.4s ease;
+}
+
+#events-list:hover .card { opacity: 0.5; transform: scale(0.98); }
+#events-list .card:hover { opacity: 1; transform: translateY(-5px) scale(1); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12); }
+
+.card-title { color: var(--text-color-dark); }
+.card-subtitle { color: #6c757d; }
+
+h2, .modal-title {
+    background: linear-gradient(90deg, var(--heading-grad-start), var(--heading-grad-end), var(--heading-grad-start));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    animation: gradient-flow 8s ease infinite; background-size: 200% auto;
+}
+
+.form-control { background-color: #FFFFFF; color: var(--text-color-dark); border: 1px solid #ced4da; }
+.form-control:focus {
+    background-color: #FFFFFF; color: var(--text-color-dark); border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(232, 62, 140, 0.25);
+}
+
+.navbar { background-color: #2c3e50 !important; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+
+.btn {
+    font-weight: 500; border: none; color: white;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+.btn:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+
+.btn-primary { background-image: linear-gradient(45deg, var(--primary-color) 0%, var(--primary-color-darker) 100%); }
+.btn-success { background-image: linear-gradient(45deg, var(--accent-color) 0%, var(--accent-color-darker) 100%); }
+
+.btn-outline-secondary { color: #6c757d; border-color: #6c757d; }
+.btn-outline-secondary:hover { color: white; background-color: #6c757d; }
+
+.view { display: none; }
+.fade-in { animation: fadeInAnimation 0.5s ease-out forwards; }
+@keyframes fadeInAnimation { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes gradient-flow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
+/* Sakura Fall Animation */
+.sakura-container { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; overflow: hidden; z-index: -1; }
+.sakura {
+    position: absolute; top: -5%; background: var(--primary-color); border-radius: 0% 50%;
+    animation-name: fall, sway; animation-timing-function: linear; animation-iteration-count: infinite;
+}
+@keyframes fall { to { transform: translateY(105vh); } }
+@keyframes sway { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(80px); } }
+.sakura:nth-child(1) { left: 65%; animation-duration: 15s, 5s; animation-delay: 0s; width: 15px; height: 10px; opacity: 0.9;}
+.sakura:nth-child(2) { left: 75%; animation-duration: 12s, 4s; animation-delay: 2s; width: 10px; height: 8px; opacity: 0.7;}
+.sakura:nth-child(3) { left: 85%; animation-duration: 18s, 6s; animation-delay: 1s; width: 18px; height: 12px; opacity: 0.8;}
+.sakura:nth-child(4) { left: 70%; animation-duration: 14s, 5s; animation-delay: 4s; width: 12px; height: 9px; opacity: 0.9;}
+.sakura:nth-child(5) { left: 80%; animation-duration: 16s, 4s; animation-delay: 6s; width: 16px; height: 11px; opacity: 0.7;}
+.sakura:nth-child(6) { left: 90%; animation-duration: 11s, 5s; animation-delay: 3s; width: 14px; height: 10px; opacity: 0.8;}
+
+/* --- WhatsApp-style Chat Bubbles --- */
+#chat-box {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.message-bubble {
+    padding: 8px 12px;
+    border-radius: 18px;
+    max-width: 70%;
+    word-wrap: break-word;
+}
+.message-bubble .message-meta {
+    font-size: 0.8rem;
+    font-weight: bold;
+    margin-bottom: 2px;
+}
+.message-bubble .message-text {
+    margin-bottom: 0;
+}
+.message-bubble.sent {
+    align-self: flex-end;
+    background-color: var(--primary-color);
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+.message-bubble.sent .message-meta {
+    color: rgba(255, 255, 255, 0.8);
+}
+.message-bubble.received {
+    align-self: flex-start;
+    background-color: #e9ecef;
+    color: var(--text-color-dark);
+    border-bottom-left-radius: 4px;
+}
+.message-bubble.received .message-meta {
+    color: var(--primary-color);
+}
+
+/* Toast Notification Styling */
+#toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    padding: 10px 20px; border-radius: 25px; background-color: #2c3e50;
+    color: #ECF0F1; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    z-index: 1060; opacity: 0; visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease, bottom 0.3s ease;
+}
+#toast.show { opacity: 1; visibility: visible; bottom: 30px; }

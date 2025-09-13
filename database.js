@@ -10,7 +10,6 @@ const db = new sqlite3.Database('./hackathon.db', (err) => {
 });
 
 db.serialize(() => {
-    // Users table (no changes)
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE,
@@ -18,7 +17,6 @@ db.serialize(() => {
         skills TEXT
     )`);
 
-    // Events table (no changes)
     db.run(`CREATE TABLE IF NOT EXISTS events (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
@@ -28,12 +26,22 @@ db.serialize(() => {
         FOREIGN KEY(organizerId) REFERENCES users(id)
     )`);
 
-    // --- NEW --- Event Participants table
-    // This table links users to the events they've joined.
     db.run(`CREATE TABLE IF NOT EXISTS event_participants (
         eventId INTEGER,
         userId INTEGER,
         PRIMARY KEY (eventId, userId),
+        FOREIGN KEY (eventId) REFERENCES events(id),
+        FOREIGN KEY (userId) REFERENCES users(id)
+    )`);
+
+    // --- NEW: Table to store chat history ---
+    db.run(`CREATE TABLE IF NOT EXISTS chat_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        eventId INTEGER,
+        userId INTEGER,
+        username TEXT,
+        message TEXT,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (eventId) REFERENCES events(id),
         FOREIGN KEY (userId) REFERENCES users(id)
     )`);
